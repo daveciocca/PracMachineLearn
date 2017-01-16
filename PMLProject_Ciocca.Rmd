@@ -1,0 +1,81 @@
+---
+title: "Practical Machine Learning Project - David Ciocca"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Introduction and Overview
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These types of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+
+In this project, data is taken from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. (The participants were asked to perform barbell lifts correctly and incorrectly in 5 different ways).  The goal of the project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. 
+
+The prediction model is also used to predict 20 different test cases.
+
+Some R libraries needed to perform the analysis were loaded at the outset of the project.
+```{r libraries}
+library(caret)
+library(randomForest)
+```
+
+### Data Processing
+
+Data for the training and test sets were downloaded from the Coursera site to a local computer.  The files were then imported into R as follows:
+
+```{r data import}
+datTrain <- read.csv("C:/Users/Dave/Documents/CourseraPML/pml-training.csv")
+datTest <- read.csv("C:/Users/Dave/Documents/CourseraPML/pml-testing.csv")
+dim(datTrain)
+dim(datTest)
+```
+As shown in the output, the training dataset contains 19,622 observations of 160 variables, while the testing dataset has 20 observations of the 160 varaibles.
+
+To clean the data, any columns with missing values were removed. Also, some of the early columns in the dataset (names, etc.) that have no predictive value are deleted as well.  This cleaning was performed as shown below.
+
+```{r data cleaning}
+cTrain <- datTrain[, colSums(is.na(datTrain))  == 0]
+cTest <- datTest[, colSums(is.na(datTest))  == 0]
+cTrain <- cTrain[, -c(1:7)]
+cTest <- cTest[, -c(1:7)]
+dim(cTrain)
+dim(cTest)
+```
+The cleaned training data was then split into training and validation sets of 65%/35%, respectively, as the following code shows.
+
+```{r data split}
+set.seed(7171)
+tmpTrain <- createDataPartition(cTrain$classe, p = 0.65, list = FALSE)
+fTrain <- cTrain[tmpTrain, ]
+fValid <- cTrain[-tmpTrain, ]
+dim(fTrain)
+dim(fValid)
+```
+
+### Prediction Model
+
+The model chosen for prediction in the project was the Random Forest Model. The model was discussed and analyzed effectively in the classroom lectures and exercises, and tends to be a robust, accurate algorithm.
+
+The results of the model run on the training data is show below:
+
+```{r prediction}
+set.seed(167)
+modTrain <- randomForest(classe~., data = fTrain)
+print(modTrain)
+```
+The model was subsequently run for prediction on the cross validation dataset, and the confusion matrix calculated and displayed.
+
+```{r validation}
+predMod <- predict(modTrain, fValid, type = "class")
+confusionMatrix(fValid$classe, predMod)
+```
+To determine in-sample error, the model was then run on the training set data.
+
+```{r in-sample}
+predTrain <- predict(modTrain, fTrain, type = "class")
+confusionMatrix(fTrain$classe, predTrain)
+```
+Comparing the summaries from the two model runs above, the error is the difference in accuracies; 1 - 0.9946, or about 0.54%.
+
